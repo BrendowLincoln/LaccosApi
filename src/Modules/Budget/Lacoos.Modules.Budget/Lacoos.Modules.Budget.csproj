@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Lacoos.SharedKernel\Lacoos.SharedKernel.csproj" />
+    <ProjectReference Include="..\Lacoos.Modules.Budget.Contracts\Lacoos.Modules.Budget.Contracts.csproj" />
+    <ProjectReference Include="..\..\Suppliers\Lacoos.Modules.Suppliers.Contracts\Lacoos.Modules.Suppliers.Contracts.csproj" />
+    <ProjectReference Include="..\..\Payments\Lacoos.Modules.Payments.Contracts\Lacoos.Modules.Payments.Contracts.csproj" />
+  </ItemGroup>
+</Project>

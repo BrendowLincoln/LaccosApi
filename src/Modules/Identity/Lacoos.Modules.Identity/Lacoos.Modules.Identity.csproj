@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Lacoos.SharedKernel\Lacoos.SharedKernel.csproj" />
+    <ProjectReference Include="..\Lacoos.Modules.Identity.Contracts\Lacoos.Modules.Identity.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\Lacoos.SharedKernel\Lacoos.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Modules\Identity\Lacoos.Modules.Identity\Lacoos.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\Modules\Weddings\Lacoos.Modules.Weddings\Lacoos.Modules.Weddings.csproj" />
+    <ProjectReference Include="..\..\Modules\Dashboard\Lacoos.Modules.Dashboard\Lacoos.Modules.Dashboard.csproj" />
+    <ProjectReference Include="..\..\Modules\Checklist\Lacoos.Modules.Checklist\Lacoos.Modules.Checklist.csproj" />
+    <ProjectReference Include="..\..\Modules\Budget\Lacoos.Modules.Budget\Lacoos.Modules.Budget.csproj" />
+    <ProjectReference Include="..\..\Modules\Guests\Lacoos.Modules.Guests\Lacoos.Modules.Guests.csproj" />
+    <ProjectReference Include="..\..\Modules\Suppliers\Lacoos.Modules.Suppliers\Lacoos.Modules.Suppliers.csproj" />
+    <ProjectReference Include="..\..\Modules\Payments\Lacoos.Modules.Payments\Lacoos.Modules.Payments.csproj" />
+    <ProjectReference Include="..\..\Modules\Gifts\Lacoos.Modules.Gifts\Lacoos.Modules.Gifts.csproj" />
+  </ItemGroup>
+
+</Project>

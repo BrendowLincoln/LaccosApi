@@ -1,0 +1,67 @@
+name: lacoos
+
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+  ConnectionStrings__Postgres: Host=db;Port=5432;Database=${LACOOS_DB_NAME:?copie .env.example para .env};Username=${LACOOS_DB_USER:?copie .env.example para .env};Password=${LACOOS_DB_PASSWORD:?copie .env.example para .env};GSS Encryption Mode=Disable
+
+services:
+  db:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: ${LACOOS_DB_NAME:?copie .env.example para .env}
+      POSTGRES_USER: ${LACOOS_DB_USER:?copie .env.example para .env}
+      POSTGRES_PASSWORD: ${LACOOS_DB_PASSWORD:?copie .env.example para .env}
+    ports:
+      - "${LACOOS_DB_PORT:-5432}:5432"
+    volumes:
+      - lacoos-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      <<: *api-environment
+      App__FrontendBaseUrl: ${FRONTEND_BASE_URL:-http://localhost:4200}
+      Cors__AllowedOrigins__0: ${FRONTEND_BASE_URL:-http://localhost:4200}
+      Smtp__Host: ${SMTP_HOST:-mailpit}
+      Smtp__Port: ${SMTP_PORT:-1025}
+      Smtp__UseTls: ${SMTP_USE_TLS:-false}
+      Smtp__Username: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__From: ${SMTP_FROM:-nao-responda@lacoos.local}
+      Seed__Enabled: ${SEED_ENABLED:-false}
+      Seed__DemoPassword: ${SEED_DEMO_PASSWORD:-}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - lacoos-uploads:/app/data/uploads
+
+  # Passo explícito para produção: docker compose --profile migrate run --rm migrate
+  migrate:
+    build: .
+    profiles: ["migrate"]
+    command: ["migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *api-environment
+
+volumes:
+  lacoos-db:
+  lacoos-uploads:

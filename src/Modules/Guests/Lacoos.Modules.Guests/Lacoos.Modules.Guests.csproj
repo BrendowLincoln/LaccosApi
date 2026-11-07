@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Lacoos.SharedKernel\Lacoos.SharedKernel.csproj" />
+    <ProjectReference Include="..\Lacoos.Modules.Guests.Contracts\Lacoos.Modules.Guests.Contracts.csproj" />
+    <ProjectReference Include="..\..\Gifts\Lacoos.Modules.Gifts.Contracts\Lacoos.Modules.Gifts.Contracts.csproj" />
+  </ItemGroup>
+</Project>
