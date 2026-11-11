@@ -1,0 +1,74 @@
+# Pipeline de CI do Laçoos.
+# Etapa 1 da trilha: a cada push ou pull request na main, compila e roda todos os testes.
+# As etapas de imagem e deploy entram depois, como novos stages neste mesmo arquivo.
+
+# Quando rodar: push na main e pull requests que apontam para a main.
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - docs/*
+      - README.md
+
+pr:
+  branches:
+    include:
+      - main
+
+# Máquina descartável da Microsoft. O Ubuntu já vem com Docker, que os testes de integração usam.
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  # Pasta dos pacotes NuGet, guardada em cache entre execuções.
+  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+  BuildConfiguration: Release
+
+stages:
+  - stage: CI
+    displayName: Build e testes
+    jobs:
+      - job: Test
+        displayName: Compilar e testar
+        timeoutInMinutes: 20
+        steps:
+          - task: UseDotNet@2
+            displayName: Instalar o SDK definido no global.json
+            inputs:
+              useGlobalJson: true
+
+          - task: Cache@2
+            displayName: Cache dos pacotes NuGet
+            inputs:
+              key: 'nuget | "$(Agent.OS)" | Directory.Packages.props'
+              restoreKeys: |
+                nuget | "$(Agent.OS)"
+              path: $(NUGET_PACKAGES)
+
+          - script: dotnet restore LacoosApi.sln
+            displayName: Restaurar pacotes
+
+          - script: dotnet build LacoosApi.sln -c $(BuildConfiguration) --no-restore
+            displayName: Compilar
+
+          # Unidade, arquitetura e integração (PostgreSQL real via Testcontainers).
+          - script: >
+              dotnet test --solution LacoosApi.sln
+              -c $(BuildConfiguration) --no-build
+              --report-xunit-trx
+              --results-directory $(Agent.TempDirectory)/TestResults
+            displayName: Rodar os testes
+
+          # Mostra os resultados na aba Tests da execução, inclusive quando algum teste falha.
+          - task: PublishTestResults@2
+            displayName: Publicar resultados dos testes
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: VSTest
+              testResultsFiles: '**/*.trx'
+              searchFolder: $(Agent.TempDirectory)/TestResults
+              testRunTitle: Laçoos
