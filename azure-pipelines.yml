@@ -72,3 +72,32 @@ stages:
               testResultsFiles: '**/*.trx'
               searchFolder: $(Agent.TempDirectory)/TestResults
               testRunTitle: Laçoos
+
+  # Etapa 2: empacota a API em uma imagem Docker e publica no GitHub Container Registry.
+  # Só roda depois que os testes passam, e só para a main (pull requests não geram imagem).
+  - stage: Image
+    displayName: Imagem Docker
+    dependsOn: CI
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - job: BuildPush
+        displayName: Gerar e publicar a imagem
+        variables:
+          # O Dockerfile usa cache de montagem (RUN --mount), que exige o BuildKit.
+          DOCKER_BUILDKIT: '1'
+        steps:
+          - task: Docker@2
+            displayName: Gerar e publicar no GHCR
+            inputs:
+              command: buildAndPush
+              # Service connection do tipo Docker Registry apontando para https://ghcr.io.
+              containerRegistry: ghcr-lacoos
+              # Vira ghcr.io/brendowlincoln/lacoos-api (o GHCR exige letras minúsculas).
+              repository: brendowlincoln/lacoos-api
+              Dockerfile: Dockerfile
+              buildContext: .
+              # A tag com o hash do commit é a que o deploy vai usar: ela identifica
+              # exatamente qual código está no ar. A "latest" é só uma conveniência.
+              tags: |
+                $(Build.SourceVersion)
+                latest
