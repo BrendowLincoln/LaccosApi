@@ -101,3 +101,73 @@ stages:
               tags: |
                 $(Build.SourceVersion)
                 latest
+
+  # Etapa 4: coloca no ar a imagem que acabou de ser publicada.
+  # Primeiro aplica as migrations no banco, depois troca a imagem do Container App.
+  - stage: Deploy
+    displayName: Deploy em produção
+    dependsOn: Image
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    variables:
+      # Variable group (Pipelines > Library) com o segredo DbConnection.
+      - group: lacoos-prod
+      - name: Image
+        value: ghcr.io/brendowlincoln/lacoos-api:$(Build.SourceVersion)
+      - name: ResourceGroup
+        value: rg-lacoos
+      - name: ContainerApp
+        value: lacoos-api
+    jobs:
+      # Um "deployment job" fica registrado no environment: dá histórico do que foi
+      # para produção e permite exigir aprovação manual antes de rodar.
+      - deployment: DeployApi
+        displayName: Migrations e deploy
+        environment: production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Roda a mesma imagem com o argumento "migrate": aplica as migrations e encerra.
+                # Variáveis secretas não chegam aos scripts sozinhas: precisam ser mapeadas em "env".
+                # O "-e" sem valor copia a variável do agente, então a senha não aparece no comando.
+                - script: >
+                    docker run --rm
+                    -e ConnectionStrings__Postgres
+                    $(Image) migrate
+                  displayName: Aplicar migrations
+                  env:
+                    ConnectionStrings__Postgres: $(DbConnection)
+
+                - task: AzureCLI@2
+                  displayName: Atualizar a imagem do Container App
+                  inputs:
+                    # Service connection do tipo Azure Resource Manager, limitada ao rg-lacoos.
+                    azureSubscription: azure-lacoos
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az containerapp update \
+                        --name $(ContainerApp) \
+                        --resource-group $(ResourceGroup) \
+                        --image $(Image) \
+                        --output none
+
+                      FQDN=$(az containerapp show --name $(ContainerApp) --resource-group $(ResourceGroup) \
+                        --query properties.configuration.ingress.fqdn --output tsv)
+                      echo "##vso[task.setvariable variable=ApiUrl]https://$FQDN"
+
+                # Teste de fumaça: o deploy só é considerado bom se a API responder.
+                # Tenta por até 2 minutos, porque o app pode estar saindo do zero.
+                - script: |
+                    for attempt in $(seq 1 12); do
+                      if curl --silent --fail --max-time 10 "$(ApiUrl)/health"; then
+                        echo
+                        echo "API respondendo em $(ApiUrl)"
+                        exit 0
+                      fi
+                      echo "Tentativa $attempt falhou, aguardando..."
+                      sleep 10
+                    done
+                    echo "##vso[task.logissue type=error]A API não respondeu em $(ApiUrl)/health"
+                    exit 1
+                  displayName: Verificar a API no ar
